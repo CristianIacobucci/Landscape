@@ -1,0 +1,101 @@
+import pygame
+import sys
+
+pygame.init()
+
+width, height = 800, 600
+screen = pygame.display.set_mode((width, height))
+pygame.display.set_caption("Halloween Landscape")
+
+BLACK = (0, 0, 0)
+DAY_SKY_COLOR = (135, 206, 235)  
+NIGHT_SKY_COLOR = (25, 25, 112)  
+ORANGE = (255, 165, 0)
+GREEN = (0, 255, 0)
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+BROWN = (139, 69, 19)
+
+clock = pygame.time.Clock()
+
+houses = [(150, 400), (250, 400), (350, 400), (450, 400), (550, 400)]
+
+trick_or_treaters = [
+    {"x": 50, "y": 450, "house_index": 0, "color": WHITE, "target_color": RED, "shape": "ghost"},
+    {"x": 50, "y": 490, "house_index": 1, "color": ORANGE, "target_color": RED, "shape": "pumpkin"},
+]
+
+speed = 2
+color_change_speed = 0.01  
+
+transition_duration = 60 * 10  
+transition_frame = 0
+
+def interpolate_color(start_color, target_color, t):
+    return (
+        start_color[0] + (target_color[0] - start_color[0]) * t,
+        start_color[1] + (target_color[1] - start_color[1]) * t,
+        start_color[2] + (target_color[2] - start_color[2]) * t
+    )
+
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+    if transition_frame < transition_duration:
+        t = transition_frame / transition_duration
+        current_sky_color = interpolate_color(DAY_SKY_COLOR, NIGHT_SKY_COLOR, t)
+        transition_frame += 1
+    else:
+        current_sky_color = NIGHT_SKY_COLOR 
+
+    screen.fill(current_sky_color)
+    pygame.draw.rect(screen, GREEN, (0, 450, width, 150))
+
+    for house_x, house_y in houses:
+        pygame.draw.rect(screen, WHITE, (house_x, house_y, 80, 80))
+        pygame.draw.polygon(screen, ORANGE, [(house_x, house_y), (house_x + 40, house_y - 40), (house_x + 80, house_y)])
+
+    for trick_or_treater in trick_or_treaters:
+        target_x = houses[trick_or_treater["house_index"]][0] + 40
+
+        if trick_or_treater["x"] < target_x:
+            trick_or_treater["x"] += speed
+
+        if trick_or_treater["x"] >= target_x:
+            trick_or_treater["house_index"] = (trick_or_treater["house_index"] + 1) % len(houses)
+            trick_or_treater["x"] = 50
+
+        if trick_or_treater["color"] != trick_or_treater["target_color"]:
+            color_diff = (
+                trick_or_treater["target_color"][0] - trick_or_treater["color"][0],
+                trick_or_treater["target_color"][1] - trick_or_treater["color"][1],
+                trick_or_treater["target_color"][2] - trick_or_treater["color"][2],
+            )
+            distance = ((color_diff[0] ** 2 + color_diff[1] ** 2 + color_diff[2] ** 2) ** 0.5)
+
+            if distance > 1:
+                
+                delta = color_change_speed
+                t = min(delta / distance, 1)  
+                trick_or_treater["color"] = interpolate_color(trick_or_treater["color"], trick_or_treater["target_color"], t)
+
+        if trick_or_treater["shape"] == "ghost":
+            pygame.draw.ellipse(screen, trick_or_treater["color"], (trick_or_treater["x"], trick_or_treater["y"], 30, 40))
+            pygame.draw.circle(screen, BLACK, (trick_or_treater["x"] + 15, trick_or_treater["y"] + 10), 5)
+            pygame.draw.circle(screen, BLACK, (trick_or_treater["x"] + 25, trick_or_treater["y"] + 10), 5)
+            pygame.draw.rect(screen, BROWN, (trick_or_treater["x"] + 20, trick_or_treater["y"] + 20, 15, 20))
+
+        else:  
+            pygame.draw.ellipse(screen, trick_or_treater["color"], (trick_or_treater["x"], trick_or_treater["y"], 30, 50))
+            pygame.draw.circle(screen, BLACK, (trick_or_treater["x"] + 10, trick_or_treater["y"] + 10), 5)
+            pygame.draw.circle(screen, BLACK, (trick_or_treater["x"] + 20, trick_or_treater["y"] + 10), 5)
+            pygame.draw.arc(screen, BLACK, (trick_or_treater["x"] + 5, trick_or_treater["y"] + 15, 20, 10), 0, 3.14, 2)
+            pygame.draw.rect(screen, BROWN, (trick_or_treater["x"] + 10, trick_or_treater["y"] + 20, 15, 20))
+
+    pygame.draw.circle(screen, WHITE, (700, 100), 50)
+
+    pygame.display.flip()
+    clock.tick(60)
